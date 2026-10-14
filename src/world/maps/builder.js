@@ -6,8 +6,8 @@ import { rampFrame } from '../shapes.js';
 // Paramètres de rampe: w largeur, h hauteur, L longueur, drop dénivelé, gap écart avant la rampe,
 // dy décalage vertical avant la rampe, dx décalage latéral, bend courbure (°), twist torsion (°), pr profil, valley (V).
 
-export const C = { white: 6, red: 8, wood: 9, orange: 10, pink: 11, indigo: 12, gold: 13, black: 14, turquoise: 15, sand: 16, coral: 17, ice: 18, deep: 19 };
-export const TX = { grille: 0, seigaiha: 1, asanoha: 2, shippo: 3, ichimatsu: 4, bois: 5, laque: 6 };
+export const C = { white: 6, red: 8, wood: 9, orange: 10, pink: 11, indigo: 12, gold: 13, black: 14, turquoise: 15, sand: 16, coral: 17, ice: 18, deep: 19, blanc: 20 };
+export const TX = { grille: 0, seigaiha: 1, asanoha: 2, shippo: 3, ichimatsu: 4, bois: 5, laque: 6, netherrack: 7, basalte: 8, obsidienne: 9, magma: 10, briques: 11 };
 
 const deg = (r) => r * 180 / Math.PI;
 const fwd = (yaw) => [-Math.sin(yaw), -Math.cos(yaw)];
@@ -16,6 +16,7 @@ const local = (x0, z0, yaw, lx, lz) => { const R = rgt(yaw), F = fwd(yaw); retur
 
 function torii(objects, x, y, z, yaw, span, th) {
   const R = rgt(yaw), h = 640, r = deg(yaw);
+  if (th.gate === 'portail') { objects.push({ t: 'deco', k: 'portail', p: [x, y, z], r, sc: span / 420 }); return; }
   for (const s of [-1, 1]) objects.push({ t: 'box', p: [x + R[0] * s * span / 2, y, z + R[1] * s * span / 2], s: [48, h, 48], r, c: th.torii, tx: TX.laque });
   objects.push({ t: 'box', p: [x, y + h, z], s: [span + 256, 40, 72], r, c: th.torii, tx: TX.laque });
   objects.push({ t: 'box', p: [x, y + h + 40, z], s: [span + 320, 24, 90], r, c: C.black, tx: TX.laque });
@@ -152,7 +153,15 @@ export function buildLinear(sections, th, opt = {}) {
       objects.push({ t: 'deco', k: th.island || 'ile', p: [x, y, z], r: k * 41 + s * 13, sc: 1.3 });
       objects.push({ t: 'deco', k: tr[(k + (s > 0 ? 1 : 0)) % tr.length], p: [x + 150, y, z - 100], r: k * 30, sc: 1.5 });
       objects.push({ t: 'deco', k: th.lantern || 'toro', p: [x - 250, y, z + 150], r: 0, sc: 0.9 });
+      if (th.floating) objects.push({ t: 'deco', k: th.floating, p: [x + s * 600, y + 1400 + (k % 3) * 300, z + 400], r: k * 17, sc: 1.6 + (k % 2) });
     }
   });
-  return { v: 3, mode: 'lineaire', floor: true, floorColor: th.sea ?? 0x3f8494, sky: th.sky || 'jour', particles: th.particles || 'petales', spawn: spawn0, stages, objects };
+  const base = { v: 3, mode: 'lineaire', floor: true, floorColor: th.sea ?? 0x3f8494, floorKind: th.floorKind, sky: th.sky || 'jour', particles: th.particles || 'petales', spawn: spawn0, objects };
+  if (!opt.noCheckpoint) return { ...base, stages };
+  // Sans checkpoint: une seule course; chute = sous la piste de plus de failMargin. Les sections restent pour l'entraînement.
+  const all = stages.flatMap(s => s.path);
+  return {
+    ...base, noCheckpoint: true, sections: stages,
+    stages: [{ spawn: spawn0, end: stages[stages.length - 1].end, failY: -1e9, failMargin: opt.failMargin ?? 2600, path: all }],
+  };
 }

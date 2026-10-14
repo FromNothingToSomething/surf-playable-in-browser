@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // Motifs japonais procéduraux, en niveaux de gris (teintés par la couleur de l'objet). Tous tuilables.
 // 1 tuile = 256 unités monde.
-export const TEXTURES = ['grille', 'seigaiha', 'asanoha', 'shippo', 'ichimatsu', 'bois', 'laque'];
+export const TEXTURES = ['grille', 'seigaiha', 'asanoha', 'shippo', 'ichimatsu', 'bois', 'laque', 'netherrack', 'basalte', 'obsidienne', 'magma', 'briques'];
 
 function canvas(w, h = w) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -116,18 +116,97 @@ function grille() {
   return c;
 }
 
-const MAKERS = { grille, seigaiha, asanoha, shippo, ichimatsu, bois, laque };
+// ---- Enfer: textures pixelisées colorées (teinte objet = blanc) + cartes de lueur ----
+const PIX = 32;
+function pixelCanvas(fn, n = PIX) {
+  const [c, g] = canvas(n); const img = g.createImageData(n, n);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const [r, gg, b] = fn(x, y); const i = (y * n + x) * 4; img.data[i] = r; img.data[i + 1] = gg; img.data[i + 2] = b; img.data[i + 3] = 255; }
+  g.putImageData(img, 0, 0); c._pixel = true; return c;
+}
+function hash2(x, y, s = 1) { let h = (x * 374761393 + y * 668265263 + s * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
+function netherrack() {
+  return pixelCanvas((x, y) => {
+    const n = hash2(x, y, 3), blob = hash2(x >> 2, y >> 2, 9);
+    const k = 0.55 + n * 0.3 + blob * 0.25;
+    return [150 * k + 20, 40 * k + 8, 34 * k + 6];
+  });
+}
+// cartes de lueur (fissures)
+function crackMask(n, seed, density) {
+  const m = new Float32Array(n * n);
+  const r = rng(seed);
+  for (let k = 0; k < density; k++) {
+    let x = Math.floor(r() * n), y = Math.floor(r() * n), dx = r() < 0.5 ? 1 : -1, dy = r() < 0.5 ? 1 : 0;
+    for (let i = 0; i < 6 + r() * 10; i++) {
+      m[((y + n) % n) * n + ((x + n) % n)] = 1;
+      if (r() < 0.35) dy = r() < 0.5 ? 1 : -1; if (r() < 0.25) dy = 0;
+      x += dx; y += dy;
+    }
+  }
+  return m;
+}
+const MAGMA = crackMask(PIX, 41, 18), BASALT = crackMask(PIX, 77, 5), NRACK = crackMask(PIX, 5, 3);
+function magma() {
+  return pixelCanvas((x, y) => {
+    if (MAGMA[y * PIX + x]) return [255, 120, 30];
+    const n = hash2(x, y, 11), b = hash2(x >> 3, y >> 3, 2);
+    const k = 0.5 + n * 0.25 + b * 0.2;
+    return [90 * k + 20, 30 * k + 10, 22 * k + 8];
+  });
+}
+function basalte() {
+  return pixelCanvas((x, y) => {
+    if (BASALT[y * PIX + x]) return [255, 110, 40];
+    const col = Math.floor(x / 4), n = hash2(x, y, 21), c = hash2(col, 0, 5);
+    const edge = x % 4 === 0 ? 0.65 : 1;
+    const k = (0.55 + c * 0.25 + n * 0.15) * edge;
+    return [78 * k + 10, 74 * k + 10, 86 * k + 12];
+  });
+}
+function obsidienne() {
+  return pixelCanvas((x, y) => {
+    const n = hash2(x, y, 31), b = hash2(x >> 1, y >> 2, 4);
+    const sheen = n > 0.93 ? 1 : 0;
+    const k = 0.4 + b * 0.35;
+    return [30 * k + 10 + sheen * 60, 18 * k + 8 + sheen * 30, 52 * k + 14 + sheen * 110];
+  });
+}
+function briques() {
+  return pixelCanvas((x, y) => {
+    const row = Math.floor(y / 4), off = (row & 1) * 4;
+    const mortar = y % 4 === 3 || (x + off) % 8 === 7;
+    const n = hash2(x, y, 51), brick = hash2(Math.floor((x + off) / 8), row, 7);
+    if (mortar) return [40 + n * 14, 16, 20];
+    const k = 0.75 + brick * 0.25 + n * 0.12;
+    return [150 * k, 52 * k, 56 * k];
+  });
+}
+function glowFrom(mask, color = [255, 140, 40]) {
+  return () => pixelCanvas((x, y) => mask[y * PIX + x] ? color : [0, 0, 0]);
+}
+const GLOW = { magma: glowFrom(MAGMA), basalte: glowFrom(BASALT, [255, 100, 30]), netherrack: glowFrom(NRACK, [200, 60, 20]) };
+
+const MAKERS = { grille, seigaiha, asanoha, shippo, ichimatsu, bois, laque, netherrack, basalte, obsidienne, magma, briques };
+
+function toTexture(cv, aniso) {
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  if (cv._pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestMipmapLinearFilter; }
+  t.anisotropy = aniso;
+  const k = cv._pixel ? 2 : 1; // pixel art: 1 tuile = 128u (pixels de 4u)
+  t.repeat.set(k, k * cv.width / cv.height);
+  return t;
+}
+
+// Cartes émissives (null si le motif ne brille pas)
+export function makeGlowTextures(renderer) {
+  const aniso = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 1;
+  return TEXTURES.map(name => GLOW[name] ? toTexture(GLOW[name](), aniso) : null);
+}
 
 export function makePatternTextures(renderer) {
   const aniso = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 1;
-  return TEXTURES.map(name => {
-    const cv = MAKERS[name]();
-    const t = new THREE.CanvasTexture(cv);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = aniso;
-    // garde 1 tuile = 256u en largeur; hauteur proportionnelle au canvas
-    t.repeat.set(1, cv.width / cv.height);
-    return t;
-  });
+  // 1 tuile = 256u en largeur; hauteur proportionnelle au canvas
+  return TEXTURES.map(name => toTexture(MAKERS[name](), aniso));
 }

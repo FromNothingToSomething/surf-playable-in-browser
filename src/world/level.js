@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { buildVisual, buildCollision, decorate } from './build.js';
 import { saveMap } from './mapdata.js';
-import { makePatternTextures } from '../render/patterns.js';
+import { makePatternTextures, makeGlowTextures } from '../render/patterns.js';
+import { createLava } from '../render/lava.js';
 import { createSky, SKY_PRESETS } from '../render/sky.js';
 import { WORLD_SIZE } from '../config.js';
 
@@ -10,7 +11,10 @@ export class Level {
     this.scene = scene;
     this.map = map;
     this.textures = makePatternTextures(renderer);
-    this.mats = this.textures.map(t => new THREE.MeshLambertMaterial({ map: t, vertexColors: true }));
+    this.glows = makeGlowTextures(renderer);
+    this.mats = this.textures.map((t, i) => new THREE.MeshLambertMaterial(this.glows[i]
+      ? { map: t, vertexColors: true, emissive: 0xffffff, emissiveMap: this.glows[i], emissiveIntensity: 1.6 }
+      : { map: t, vertexColors: true }));
     this.group = new THREE.Group();
     scene.add(this.group);
 
@@ -29,6 +33,8 @@ export class Level {
     this.floorMesh = new THREE.Mesh(decorate(fg, 0x3f8494), new THREE.MeshLambertMaterial({ map: seaTex, vertexColors: true }));
     this.floorColor = 0x3f8494;
     scene.add(this.floorMesh);
+    this.lava = createLava(WORLD_SIZE);
+    scene.add(this.lava);
 
     this.zones = new THREE.Group();
     scene.add(this.zones);
@@ -79,7 +85,9 @@ export class Level {
       c.children.forEach(e => e.geometry.dispose());
     }
     this.map.objects.forEach((o, i) => { const m = buildVisual(o, this.mats); m.userData.i = i; this.group.add(m); });
-    this.floorMesh.visible = !!this.map.floor;
+    const lava = this.map.floorKind === 'lave';
+    this.floorMesh.visible = !!this.map.floor && !lava;
+    this.lava.visible = !!this.map.floor && lava;
     const fc = this.map.floorColor ?? 0x3f8494;
     if (fc !== this.floorColor) { decorate(this.floorGeo, fc); this.floorColor = fc; }
     for (const z of [...this.zones.children]) { this.zones.remove(z); z.traverse(o => o.geometry && o.geometry.dispose()); }

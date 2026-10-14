@@ -38,11 +38,21 @@ function snowTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
+function emberTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(32, 32, 1, 32, 32, 26);
+  grad.addColorStop(0, 'rgba(255,240,180,1)'); grad.addColorStop(0.3, 'rgba(255,150,40,0.9)'); grad.addColorStop(1, 'rgba(255,60,0,0)');
+  g.fillStyle = grad; g.beginPath(); g.arc(32, 32, 26, 0, 7); g.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
 // Réglages par type: vitesse de chute (négatif = monte), balancement, rotation, taille
 const KINDS = {
   petales: { tex: petalTexture, fall: 1, sway: 1, spin: 1, size: 11 },
   bulles: { tex: bubbleTexture, fall: -1.6, sway: 0.4, spin: 0, size: 9 },
   neige: { tex: snowTexture, fall: 1.3, sway: 0.7, spin: 0, size: 7 },
+  braises: { tex: emberTexture, fall: -0.9, sway: 1.3, spin: 0, size: 8, additive: true },
 };
 
 export function createPetals(count = 1600) {
@@ -96,6 +106,7 @@ export function createPetals(count = 1600) {
     mat.uniforms.map.value = texCache[kind] || (texCache[kind] = k.tex());
     mat.uniforms.fall.value = k.fall; mat.uniforms.sway.value = k.sway; mat.uniforms.spin.value = k.spin; mat.uniforms.size.value = k.size;
     pts.visible = kind !== 'aucune';
+    mat.blending = k.additive ? THREE.AdditiveBlending : THREE.NormalBlending; mat.needsUpdate = true;
   };
   pts.update = (time, camera, renderer) => {
     mat.uniforms.time.value = time;

@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Décor japonais low-poly, sans collision. Chaque type renvoie { lit, glow } (géométries monde avec couleurs).
-export const DECO_KINDS = ['sakura', 'toro', 'chochin', 'ile', 'pin', 'corail', 'algue', 'rocher', 'recif', 'ileneige'];
-export const DECO_LABEL = { sakura: 'Cerisier', toro: 'Lanterne de pierre', chochin: 'Lanterne papier', ile: 'Île flottante', pin: 'Pin', corail: 'Corail', algue: 'Algue', rocher: 'Rocher', recif: 'Récif flottant', ileneige: 'Île enneigée' };
+export const DECO_KINDS = ['sakura', 'toro', 'chochin', 'ile', 'pin', 'corail', 'algue', 'rocher', 'recif', 'ileneige', 'colonnes', 'glowstone', 'champi_c', 'champi_w', 'brasero', 'portail', 'ilenether'];
+export const DECO_LABEL = { sakura: 'Cerisier', toro: 'Lanterne de pierre', chochin: 'Lanterne papier', ile: 'Île flottante', pin: 'Pin', corail: 'Corail', algue: 'Algue', rocher: 'Rocher', recif: 'Récif flottant', ileneige: 'Île enneigée', colonnes: 'Colonnes de basalte', glowstone: 'Pierre lumineuse', champi_c: 'Champignon cramoisi', champi_w: 'Champignon distordu', brasero: 'Brasero', portail: 'Portail', ilenether: 'Île infernale' };
 
 function rng(seed) { return () => ((seed = (seed * 16807 + 11) % 2147483647) / 2147483647); }
 
@@ -132,7 +132,74 @@ function ileneige(r) {
   return b;
 }
 
-const MAKE = { sakura, toro, chochin, ile, pin, corail, algue, rocher, recif, ileneige };
+// ---------- enfer ----------
+function colonnes(r) {
+  const lit = [];
+  for (let i = 0; i < 9; i++) {
+    const a = r() * 6.28, d = r() * 160, hgt = 120 + r() * 420;
+    const g = new THREE.CylinderGeometry(44, 48, hgt, 6); at(g, Math.cos(a) * d, hgt / 2, Math.sin(a) * d);
+    lit.push(paint(g, 0x3e3a44, 0.15, r));
+  }
+  return { lit, glow: [] };
+}
+function glowstone(r) {
+  const glow = [], lit = [];
+  for (let i = 0; i < 10; i++) {
+    const s = 40 + r() * 50, g = new THREE.BoxGeometry(s, s, s);
+    g.rotateY(r() * 0.5); at(g, (r() - 0.5) * 140, (r() - 0.5) * 120, (r() - 0.5) * 140);
+    glow.push(paint(g, [0xffd27a, 0xffe9a6, 0xffbf5a][i % 3]));
+  }
+  return { lit, glow };
+}
+function champi(r, cap, light) {
+  const lit = [], glow = [];
+  const hgt = 260 + r() * 160;
+  lit.push(paint(at(new THREE.BoxGeometry(46, hgt, 46), 0, hgt / 2, 0), cap === 0xa3142c ? 0x6b1f2c : 0x1f5c5a, 0.12, r));
+  lit.push(paint(at(new THREE.BoxGeometry(320, 70, 320), 0, hgt + 20, 0), cap, 0.1, r));
+  lit.push(paint(at(new THREE.BoxGeometry(220, 70, 220), 0, hgt + 85, 0), cap, 0.1, r));
+  for (let i = 0; i < 4; i++) {
+    const a = i * 1.57 + r(); glow.push(paint(at(new THREE.BoxGeometry(48, 48, 48), Math.cos(a) * 120, hgt - 30, Math.sin(a) * 120), light));
+  }
+  for (let i = 0; i < 6; i++) { // lianes
+    const a = r() * 6.28, d = 100 + r() * 50, l = 80 + r() * 160;
+    lit.push(paint(at(new THREE.BoxGeometry(12, l, 12), Math.cos(a) * d, hgt - l / 2, Math.sin(a) * d), cap, 0.15, r));
+  }
+  return { lit, glow };
+}
+const champi_c = (r) => champi(r, 0xa3142c, 0xffa64d);
+const champi_w = (r) => champi(r, 0x167e7a, 0xffb85a);
+function brasero(r) {
+  const lit = [paint(at(new THREE.CylinderGeometry(70, 40, 60, 8), 0, 150, 0), 0x2a2a30, 0.1, r)];
+  for (const [x, z] of [[-40, -40], [40, -40], [-40, 40], [40, 40]]) lit.push(paint(at(new THREE.BoxGeometry(12, 130, 12), x, 65, z), 0x2a2a30, 0.1, r));
+  const glow = [
+    paint(at(new THREE.ConeGeometry(60, 150, 7), 0, 250, 0), 0xff6a1a),
+    paint(at(new THREE.ConeGeometry(36, 120, 6), 10, 245, 8), 0xffc24a),
+    paint(at(new THREE.ConeGeometry(18, 70, 5), -12, 230, -6), 0xfff1b0),
+  ];
+  return { lit, glow };
+}
+function portail(r) {
+  const lit = [], glow = [], b = 64, W = 4, H = 5;
+  const blk = (x, y, z) => lit.push(paint(at(new THREE.BoxGeometry(b, b, b), x, y, z), 0x221636, 0.12, r));
+  for (let i = 0; i < W + 2; i++) { blk((i - (W + 1) / 2) * b, b / 2, 0); blk((i - (W + 1) / 2) * b, (H + 1) * b + b / 2, 0); }
+  for (let j = 1; j <= H; j++) { blk(-(W + 1) / 2 * b, j * b + b / 2, 0); blk((W + 1) / 2 * b, j * b + b / 2, 0); }
+  const pl = new THREE.BoxGeometry(W * b, H * b, 10); at(pl, 0, b + H * b / 2, 0);
+  glow.push(paint(pl, 0x9a3cff));
+  const pl2 = new THREE.BoxGeometry(W * b * 0.6, H * b * 0.7, 12); at(pl2, 0, b + H * b / 2, 0);
+  glow.push(paint(pl2, 0xc98bff));
+  return { lit, glow };
+}
+function ilenether(r) {
+  const g = new THREE.ConeGeometry(520, 1000, 8, 4); g.rotateX(Math.PI); at(g, 0, -500, 0);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) if (p.getY(i) < -5) { const k = 0.7 + r() * 0.6; p.setX(i, p.getX(i) * k); p.setZ(i, p.getZ(i) * k); p.setY(i, p.getY(i) * (0.8 + r() * 0.4)); }
+  const top = at(new THREE.CylinderGeometry(550, 546, 44, 8), 0, -20, 0);
+  const pool = at(new THREE.CylinderGeometry(160, 160, 8, 10), 180, 4, -120);
+  const drip = at(new THREE.ConeGeometry(40, 500, 5), 300, -280, 120); drip.rotateX(Math.PI);
+  return { lit: [paint(g, 0x6e221c, 0.15, r), paint(top, 0x8a2b22, 0.1, r)], glow: [paint(pool, 0xff7a1a), paint(drip, 0xff5a10)] };
+}
+
+const MAKE = { sakura, toro, chochin, ile, pin, corail, algue, rocher, recif, ileneige, colonnes, glowstone, champi_c, champi_w, brasero, portail, ilenether };
 
 export function decoGeometry(o) {
   const r = rng(Math.floor((o.p[0] * 7 + o.p[2] * 13 + o.p[1]) % 100000) + 17);

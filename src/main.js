@@ -35,7 +35,7 @@ const run = new Run();
 let finishT = 0;
 
 const MSG = {
-  play: 'Cliquer pour jouer\nZQSD · Espace (maintenir = bhop) · souris\nR recommencer le stage / checkpoint · Maj+R tout recommencer · 1-9 stage · P éditeur',
+  play: 'Cliquer pour jouer\nZQSD · Espace (maintenir = bhop) · souris\nR recommencer le stage / checkpoint · Maj+R tout recommencer · 1-9 stage · P éditeur\nInferno : sans checkpoint, 1-9 / N / B = entraînement par section (sans record)',
   edit: 'Cliquer pour éditer\nZQSD vol · Espace/C haut-bas · Maj rapide\nP jouer · Échap = panneau',
 };
 
@@ -50,7 +50,7 @@ function renderMenu() {
     : `<div id="maps">${LEVELS.filter(L => L.mode === menuMode).map(L => {
     const b = bestTimes(L.id).total;
     return `<button data-lv="${L.id}" class="${L.id === cur ? 'on' : ''}">
-      <span class="t">${'★'.repeat(L.tier)}${'☆'.repeat(4 - L.tier)}</span>
+      <span class="t">${'★'.repeat(L.tier)}${'☆'.repeat(Math.max(0, 5 - L.tier))}</span>
       <b>${L.name}</b><small>${L.desc}${isModified(L.id) ? ' · modifié' : ''}</small>
       <small>${b ? 'record ' + fmt(b) : 'pas encore fini'}</small></button>`;
   }).join('')}</div>`;
@@ -122,8 +122,16 @@ addEventListener('keydown', (e) => {
   if (e.repeat || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
   if (e.code === 'KeyP') { setMode(mode === 'play' ? 'edit' : 'play'); return; }
   else if (mode === 'play' && e.code === 'KeyR') {
-    if (e.shiftKey) run.reset(level.map); else { run.stageTime = 0; run.finished = null; }
+    const sec = run.section;
+    if (e.shiftKey || (level.map.noCheckpoint && sec === null)) run.reset(level.map);
+    else { run.stageTime = 0; run.finished = null; }
     respawn();
+  } else if (mode === 'play' && level.map.noCheckpoint && (/^Digit[1-9]$/.test(e.code) || e.code === 'KeyN' || e.code === 'KeyB')) {
+    // entraînement par section (pas de record): 1-9, N suivante, B précédente
+    const n = level.map.sections.length, cur = run.section ?? -1;
+    let k = /^Digit/.test(e.code) ? +e.code.slice(5) - 1 : (e.code === 'KeyN' ? cur + 1 : cur - 1);
+    k = Math.max(0, Math.min(n - 1, k));
+    run.reset(level.map); run.section = k; run.practice = true; respawn();
   } else if (mode === 'play' && /^Digit[1-9]$/.test(e.code)) {
     const k = +e.code.slice(5) - 1;
     if (k < run.stages.length) { run.reset(level.map); run.stage = k; run.practice = k > 0; respawn(); }
@@ -168,6 +176,10 @@ function step(dt) {
   simulate(player, input, dt);
   collision.moveAndSlide(player, dt);
   const ev = run.tick(player, dt);
+  if (ev === 'fail' && level.map.noCheckpoint && run.section === null) {
+    const pct = Math.round(run.progress * 100);
+    run.reset(level.map); run.flash(`Chute à ${pct} % — retour au départ`, 2.5);
+  }
   if (ev === 'next' || ev === 'fail') respawn();
   if (ev === 'finish') {
     finishT = 5;
@@ -176,7 +188,12 @@ function step(dt) {
       if (!b.total || run.finished < b.total) { b.total = run.finished; saveBest(level.map.id, b); run.flash(`Nouveau record : ${fmt(run.finished)}`, 5); }
     }
   }
-  if (finishT > 0 && (finishT -= dt) <= 0) { run.reset(level.map); respawn(); }
+  if (finishT > 0 && (finishT -= dt) <= 0) {
+    const sec = run.section;
+    run.reset(level.map);
+    if (sec !== null) { run.section = sec; run.practice = true; }
+    respawn();
+  }
 }
 
 setMode('play');

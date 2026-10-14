@@ -36,8 +36,10 @@ Le mode se choisit sur l'écran d'accueil (ou Échap) : Stages, Linéaire, Édit
 | Oni | Stages | 4 | 5 stages |
 | Umi | Linéaire | 2 | sous la mer, 6 checkpoints |
 | Yuki | Linéaire | 3 | neige, 6 checkpoints |
+| Inferno | Linéaire | 5 | enfer, **sans checkpoint**, 17 sections, course de 1 min 50 minimum |
 
 En linéaire, une chute renvoie au dernier checkpoint avec de l'élan.
+Sur Inferno, une chute renvoie au départ. Entraînement par section (sans record) : 1-9, N (suivante), B (précédente).
 
 ## Tests
 

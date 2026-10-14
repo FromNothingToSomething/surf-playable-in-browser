@@ -4,6 +4,7 @@ import { roninMap } from './maps/ronin.js';
 import { oniMap } from './maps/oni.js';
 import { umiMap } from './maps/umi.js';
 import { yukiMap } from './maps/yuki.js';
+import { infernoMap } from './maps/inferno.js';
 
 export const MODES = [
   { id: 'stages', name: 'Stages', desc: 'Parcours découpés en stages, téléport à chaque fin de stage' },
@@ -18,5 +19,6 @@ export const LEVELS = [
   { id: 'oni', mode: 'stages', name: 'Oni', tier: 4, desc: '5 stages · de nuit', gen: oniMap },
   { id: 'umi', mode: 'lineaire', name: 'Umi', tier: 2, desc: 'linéaire · sous la mer · 6 checkpoints', gen: umiMap },
   { id: 'yuki', mode: 'lineaire', name: 'Yuki', tier: 3, desc: 'linéaire · neige · 6 checkpoints', gen: yukiMap },
+  { id: 'inferno', mode: 'lineaire', name: 'Inferno', tier: 5, desc: 'linéaire · SANS checkpoint · enfer · 2 min+', gen: infernoMap },
 ];
 export const levelById = (id) => LEVELS.find(l => l.id === id);
