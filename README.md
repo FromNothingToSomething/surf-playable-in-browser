@@ -37,6 +37,7 @@ Le mode se choisit sur l'écran d'accueil (ou Échap) : Stages, Linéaire, Édit
 | Umi | Linéaire | 2 | sous la mer, 6 checkpoints |
 | Yuki | Linéaire | 3 | neige, 6 checkpoints |
 | Valombre | Linéaire | 2 | médiéval : sommet → vallée boisée → château avec douves, village, chevaliers |
+| Initiation | Bhop | 2 | 3 stages de plateformes à enchaîner en bunnyhop (test: node test/bhop.mjs) |
 | Inferno | Linéaire | 5 | enfer, **sans checkpoint**, 17 sections, course de 1 min 50 minimum |
 
 En linéaire, une chute renvoie au dernier checkpoint avec de l'élan.

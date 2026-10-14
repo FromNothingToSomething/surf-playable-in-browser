@@ -6,10 +6,12 @@ import { umiMap } from './maps/umi.js';
 import { yukiMap } from './maps/yuki.js';
 import { infernoMap } from './maps/inferno.js';
 import { valombreMap } from './maps/valombre.js';
+import { bhopMap } from './maps/bhop.js';
 
 export const MODES = [
   { id: 'stages', name: 'Stages', desc: 'Parcours découpés en stages, téléport à chaque fin de stage' },
   { id: 'lineaire', name: 'Linéaire', desc: 'Une seule descente continue, checkpoints en cas de chute' },
+  { id: 'bhop', name: 'Bhop', desc: 'Plateformes à enchaîner en bunnyhop, chute = retour au stage' },
   { id: 'editeur', name: 'Éditeur', desc: 'Modifier la map sélectionnée' },
 ];
 
@@ -22,5 +24,6 @@ export const LEVELS = [
   { id: 'yuki', mode: 'lineaire', name: 'Yuki', tier: 3, desc: 'linéaire · neige · 6 checkpoints', gen: yukiMap },
   { id: 'valombre', mode: 'lineaire', name: 'Valombre', tier: 2, desc: 'linéaire · médiéval · château, forêt, chevaliers', gen: valombreMap },
   { id: 'inferno', mode: 'lineaire', name: 'Inferno', tier: 5, desc: 'linéaire · SANS checkpoint · enfer · 2 min+', gen: infernoMap },
+  { id: 'initiation', mode: 'bhop', name: 'Initiation', tier: 2, desc: '3 stages · plateformes · bunnyhop', gen: bhopMap },
 ];
 export const levelById = (id) => LEVELS.find(l => l.id === id);
