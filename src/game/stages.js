@@ -31,10 +31,11 @@ export class Run {
     if (inZone(player.pos, st.end)) {
       const k = this.stage;
       if (!this.best[k] || this.stageTime < this.best[k]) this.best[k] = this.stageTime;
-      this.flash(`Stage ${k + 1} : ${fmt(this.stageTime)}`);
+      const lin = this.map && this.map.mode === 'lineaire';
+      this.flash(lin ? `Checkpoint ${k + 1} : ${fmt(this.total)}` : `Stage ${k + 1} : ${fmt(this.stageTime)}`);
       if (k === this.stages.length - 1) { this.finished = this.total; this.flash(`Map terminée en ${fmt(this.total)}`, 5); return 'finish'; }
       this.stage++; this.stageTime = 0;
-      return 'next';
+      return lin ? 'cp' : 'next';
     }
     return null;
   }
@@ -44,7 +45,9 @@ export class Run {
     if (!n) return '';
     const s = this.finished !== null
       ? `TERMINÉ  ${fmt(this.finished)}`
-      : `Stage ${this.stage + 1}/${n}   ${fmt(this.stageTime)}   total ${fmt(this.total)}`;
+      : (this.map && this.map.mode === 'lineaire')
+        ? `Section ${this.stage + 1}/${n}   ${fmt(this.total)}`
+        : `Stage ${this.stage + 1}/${n}   ${fmt(this.stageTime)}   total ${fmt(this.total)}`;
     return s;
   }
 }

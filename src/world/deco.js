@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Décor japonais low-poly, sans collision. Chaque type renvoie { lit, glow } (géométries monde avec couleurs).
-export const DECO_KINDS = ['sakura', 'toro', 'chochin', 'ile', 'pin'];
-export const DECO_LABEL = { sakura: 'Cerisier', toro: 'Lanterne de pierre', chochin: 'Lanterne papier', ile: 'Île flottante', pin: 'Pin' };
+export const DECO_KINDS = ['sakura', 'toro', 'chochin', 'ile', 'pin', 'corail', 'algue', 'rocher', 'recif', 'ileneige'];
+export const DECO_LABEL = { sakura: 'Cerisier', toro: 'Lanterne de pierre', chochin: 'Lanterne papier', ile: 'Île flottante', pin: 'Pin', corail: 'Corail', algue: 'Algue', rocher: 'Rocher', recif: 'Récif flottant', ileneige: 'Île enneigée' };
 
 function rng(seed) { return () => ((seed = (seed * 16807 + 11) % 2147483647) / 2147483647); }
 
@@ -78,7 +78,61 @@ function ile(r) {
   return { lit: [paint(g, 0x6b5a4c, 0.12, r), paint(top, 0x6f9a55, 0.08, r)], glow: [] };
 }
 
-const MAKE = { sakura, toro, chochin, ile, pin };
+function corail(r) {
+  const cols = [0xf07a5a, 0xf5a3b5, 0xffb347, 0xe8576b], lit = [];
+  const col = cols[Math.floor(r() * cols.length)];
+  const branch = (x, y, z, len, rad, ax, az, depth) => {
+    const g = new THREE.CylinderGeometry(rad * 0.6, rad, len, 6);
+    g.translate(0, len / 2, 0); g.rotateX(ax); g.rotateZ(az); at(g, x, y, z);
+    lit.push(paint(g, col, 0.1, r));
+    const ex = x - Math.sin(az) * Math.cos(ax) * len, ey = y + Math.cos(az) * Math.cos(ax) * len, ez = z + Math.sin(ax) * len;
+    if (depth > 0) for (let i = 0; i < 2; i++) branch(ex, ey, ez, len * 0.7, rad * 0.65, ax + (r() - 0.5) * 1.1, az + (r() - 0.5) * 1.1, depth - 1);
+    else { const b = new THREE.IcosahedronGeometry(rad * 1.6, 0); at(b, ex, ey, ez); lit.push(paint(b, col, 0.15, r)); }
+  };
+  for (let i = 0; i < 4; i++) branch((r() - 0.5) * 60, 0, (r() - 0.5) * 60, 90 + r() * 50, 16, (r() - 0.5) * 0.7, (r() - 0.5) * 0.7, 2);
+  return { lit, glow: [] };
+}
+
+function algue(r) {
+  const lit = [];
+  for (let k = 0; k < 4; k++) {
+    let x = (r() - 0.5) * 80, z = (r() - 0.5) * 80, y = 0;
+    for (let i = 0; i < 7; i++) {
+      const seg = new THREE.CylinderGeometry(9 - i, 11 - i, 70, 5);
+      const nx = x + Math.sin(i * 0.9 + k) * 18, nz = z + Math.cos(i * 0.7 + k) * 12;
+      at(seg, (x + nx) / 2, y + 35, (z + nz) / 2);
+      lit.push(paint(seg, 0x2f8a4a, 0.15, r));
+      x = nx; z = nz; y += 66;
+    }
+  }
+  return { lit, glow: [] };
+}
+
+function rocher(r) {
+  const g = new THREE.IcosahedronGeometry(120, 1);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const k = 0.75 + r() * 0.5; p.setXYZ(i, p.getX(i) * k, Math.max(p.getY(i) * k * 0.7, -10), p.getZ(i) * k); }
+  return { lit: [paint(g, 0x6d7472, 0.12, r)], glow: [] };
+}
+
+function recif(r) {
+  const base = ile(r);
+  base.lit = [paint(base.lit[0], 0x5b6a6e, 0.12, r), paint(base.lit[1], 0xe8d3a0, 0.08, r)];
+  for (let i = 0; i < 5; i++) {
+    const a = r() * 6.28, d = 150 + r() * 300;
+    const c = (i % 2 ? corail : algue)(r).lit;
+    for (const g of c) base.lit.push(at(g, Math.cos(a) * d, 0, Math.sin(a) * d));
+  }
+  return base;
+}
+
+function ileneige(r) {
+  const b = ile(r);
+  b.lit = [paint(b.lit[0], 0x7d8590, 0.1, r), paint(b.lit[1], 0xf4f7fb, 0.03, r)];
+  return b;
+}
+
+const MAKE = { sakura, toro, chochin, ile, pin, corail, algue, rocher, recif, ileneige };
 
 export function decoGeometry(o) {
   const r = rng(Math.floor((o.p[0] * 7 + o.p[2] * 13 + o.p[1]) % 100000) + 17);

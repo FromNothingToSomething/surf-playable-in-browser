@@ -11,6 +11,11 @@ export const SKY_PRESETS = {
     hemiSky: 0xffd2b8, hemiGround: 0x4a3a48, hemi: 1.25, dir: 1.6, amb: 0.7, stars: 0.15, disc: 1 },
   nuit: { top: 0x05081a, horizon: 0x283058, bottom: 0x0c1022, sun: [-0.35, 0.45, -0.6], sunCol: 0xc4d0ff, fuji: 0x1b1f38, snow: 0x8a90b4, hills: 0x121630,
     hemiSky: 0x9aa6e0, hemiGround: 0x2a2236, hemi: 1.25, dir: 1.0, amb: 0.9, stars: 1, disc: 0.6 },
+  // sous la mer: pas de Fuji, brume turquoise, lumière filtrée
+  ocean: { top: 0x0b4a6e, horizon: 0x38b6c4, bottom: 0x0b3550, sun: [0.2, 0.9, 0.2], sunCol: 0xc8fff6, fuji: 0x1e6f86, snow: 0x7fd3dc, hills: 0x1a5c72,
+    hemiSky: 0xbff6ff, hemiGround: 0x1f4f5a, hemi: 1.4, dir: 1.3, amb: 0.6, stars: 0, disc: 0.25, fujiOn: 0, fogNear: 2500, fogFar: 26000 },
+  hiver: { top: 0x8fa9c4, horizon: 0xe9eef3, bottom: 0xc9d3dc, sun: [0.3, 0.35, -0.5], sunCol: 0xfff4e6, fuji: 0x9aa8bd, snow: 0xffffff, hills: 0xb8c4d1,
+    hemiSky: 0xf2f6ff, hemiGround: 0x9aa4b0, hemi: 1.5, dir: 1.4, amb: 0.5, stars: 0, disc: 0.5, fogNear: 4000, fogFar: 36000 },
 };
 
 export function createSky() {
@@ -18,13 +23,13 @@ export function createSky() {
     top: { value: new THREE.Color() }, horizon: { value: new THREE.Color() }, bottom: { value: new THREE.Color() },
     sun: { value: new THREE.Vector3() }, sunCol: { value: new THREE.Color() },
     fuji: { value: new THREE.Color() }, snow: { value: new THREE.Color() }, hills: { value: new THREE.Color() },
-    stars: { value: 0 }, disc: { value: 1 }, fujiAz: { value: -0.35 },
+    stars: { value: 0 }, disc: { value: 1 }, fujiAz: { value: -0.35 }, fujiOn: { value: 1 },
   };
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false, uniforms: u,
     vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); vec4 p = modelViewMatrix * vec4(position,1.0); gl_Position = projectionMatrix * p; gl_Position.z = gl_Position.w; }`,
     fragmentShader: `
-      uniform vec3 top, horizon, bottom, sun, sunCol, fuji, snow, hills; uniform float stars, disc, fujiAz;
+      uniform vec3 top, horizon, bottom, sun, sunCol, fuji, snow, hills; uniform float stars, disc, fujiAz, fujiOn;
       varying vec3 vDir;
       float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
       void main(){
@@ -45,7 +50,7 @@ export function createSky() {
         float da = abs(mod(az - fujiAz + 3.14159, 6.28318) - 3.14159);
         float fh = 0.13 * pow(max(1.0 - da / 0.42, 0.0), 1.35);
         fh = min(fh, 0.118);
-        if (e > 0.0 && e < fh) {
+        if (fujiOn > 0.5 && e > 0.0 && e < fh) {
           float sn = step(fh * 0.7 + 0.006 * sin(da * 90.0), e);
           col = mix(mix(fuji, horizon, 0.35), mix(snow, horizon, 0.2), sn);
         }
@@ -63,7 +68,7 @@ export function createSky() {
   m.setPreset = (p) => {
     for (const k of ['top', 'horizon', 'bottom', 'sunCol', 'fuji', 'snow', 'hills']) u[k].value.setHex(p[k]);
     u.sun.value.set(...p.sun).normalize();
-    u.stars.value = p.stars; u.disc.value = p.disc;
+    u.stars.value = p.stars; u.disc.value = p.disc; u.fujiOn.value = p.fujiOn ?? 1;
   };
   return m;
 }

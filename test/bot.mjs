@@ -14,15 +14,16 @@ const only = process.argv[3] ? +process.argv[3] - 1 : -1;
 const verbose = !!process.argv[4];
 let map, world;
 
-function attempt(k, cfg) {
+function attempt(k, cfg, full = false) {
   const run = new Run(); run.reset(map); run.stage = k;
-  const st = map.stages[k], path = st.path;
+  const st = map.stages[k], path = full ? map.stages.flatMap(s => s.path) : st.path;
   const p = new Player();
   p.pos.set(st.spawn.p[0], st.spawn.p[1] + 1, st.spawn.p[2]);
+  if (st.spawn.v) p.vel.set(...st.spawn.v);
   const inp = { yaw: (st.spawn.r || 0) * Math.PI / 180, pitch: 0, jumpBuffer: 0, wm: { forward: 1, right: 0 },
     get wishMove() { return this.wm; }, get jumpPressed() { return false; } };
-  let idx = 0, side = 1, left = false, grounded = false, maxSpeed = 0;
-  for (let t = 0; t < 60 / DT; t++) {
+  let idx = 0, side = 1, left = !!st.spawn.v, grounded = false, maxSpeed = 0;
+  for (let t = 0; t < (full ? 300 : 60) / DT; t++) {
     if (p.onGround) grounded = true; else if (grounded) left = true;
     if (left) {
       // point de piste le plus proche (en avant)
@@ -57,7 +58,8 @@ function attempt(k, cfg) {
     world.moveAndSlide(p, DT);
     const ev = run.tick(p, DT);
     if (verbose && t % 25 === 0) console.log(t * DT, p.pos.toArray().map(v => v.toFixed(0)).join(','), 'v', Math.hypot(p.vel.x, p.vel.z).toFixed(0), p.onGround ? 'G' : p.surfNormal ? 'S' : 'A', 'idx', idx);
-    if (ev === 'next' || ev === 'finish') return { ok: true, time: (t * DT).toFixed(2), maxSpeed: maxSpeed.toFixed(0) };
+    if (full && ev === 'cp') continue;
+    if (ev === 'next' || ev === 'finish' || ev === 'cp') return { ok: true, time: (t * DT).toFixed(2), maxSpeed: maxSpeed.toFixed(0) };
     if (ev === 'fail') return { ok: false, time: (t * DT).toFixed(2), at: p.pos.toArray().map(v => v.toFixed(0)).join(','), idx: `${idx}/${path.length}` };
   }
   return { ok: false, timeout: true, at: p.pos.toArray().map(v => v.toFixed(0)).join(','), idx: `${idx}/${path.length}` };
@@ -78,6 +80,11 @@ map.stages.forEach((_, k) => {
   if (!ok) fails++;
   console.log(`${ok ? 'PASS' : 'FAIL'} stage ${k + 1}  styles réussis ${ok}/${CFGS.length}`, JSON.stringify(firstOk || r));
 });
+if (map.mode === 'lineaire' && only < 0) {
+  let ok = 0, best = null;
+  for (const cfg of CFGS) { const r = attempt(0, cfg, true); if (r.ok) { ok++; best = best || { ...r, cfg }; } }
+  console.log(`INFO run complet sans chute: ${ok}/${CFGS.length} styles`, best ? JSON.stringify(best) : '');
+}
 }
 console.log(fails ? `${fails} FAIL` : 'ALL PASS');
 process.exit(fails ? 1 : 0);

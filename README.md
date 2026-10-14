@@ -24,14 +24,20 @@ Sans npm : ouvrir directement `surf-bhop.html` (version fichier unique, régén�
 - R : recommencer le stage · Maj+R : recommencer le level · 1-9 : choisir un stage
 - P : éditeur · Échap : menu des levels
 
-## Levels
+## Modes et maps
 
-| Level | Tier | Stages |
-|---|---|---|
-| Kitsune | 1 | 9 |
-| Hanami | 2 | 6 |
-| Rōnin | 3 | 6 |
-| Oni | 4 | 5 |
+Le mode se choisit sur l'écran d'accueil (ou Échap) : Stages, Linéaire, Éditeur.
+
+| Map | Mode | Tier | Contenu |
+|---|---|---|---|
+| Kitsune | Stages | 1 | 9 stages |
+| Hanami | Stages | 2 | 6 stages |
+| Rōnin | Stages | 3 | 6 stages |
+| Oni | Stages | 4 | 5 stages |
+| Umi | Linéaire | 2 | sous la mer, 6 checkpoints |
+| Yuki | Linéaire | 3 | neige, 6 checkpoints |
+
+En linéaire, une chute renvoie au dernier checkpoint avec de l'élan.
 
 ## Tests
 

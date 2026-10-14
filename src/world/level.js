@@ -33,6 +33,8 @@ export class Level {
     this.zones = new THREE.Group();
     scene.add(this.zones);
     this.zoneMat = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.28, depthWrite: false });
+    this.gateMat = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.75, fog: false });
+    this.veilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c9, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide });
 
     // grille d'édition: mineure 256u, majeure 2048u
     this.grid = new THREE.Group();
@@ -63,6 +65,7 @@ export class Level {
     const p = SKY_PRESETS[this.map.sky] || SKY_PRESETS.jour;
     this.sky.setPreset(p);
     this.scene.fog.color.setHex(p.horizon);
+    this.scene.fog.near = p.fogNear ?? 7000; this.scene.fog.far = p.fogFar ?? 48000;
     this.hemi.color.setHex(p.hemiSky); this.hemi.groundColor.setHex(p.hemiGround); this.hemi.intensity = p.hemi;
     this.sun.color.setHex(p.sunCol); this.sun.intensity = p.dir;
     this.amb.color.setHex(p.hemiSky); this.amb.intensity = p.amb ?? 0.4;
@@ -79,12 +82,26 @@ export class Level {
     this.floorMesh.visible = !!this.map.floor;
     const fc = this.map.floorColor ?? 0x3f8494;
     if (fc !== this.floorColor) { decorate(this.floorGeo, fc); this.floorColor = fc; }
-    for (const z of [...this.zones.children]) { this.zones.remove(z); z.geometry.dispose(); }
+    for (const z of [...this.zones.children]) { this.zones.remove(z); z.traverse(o => o.geometry && o.geometry.dispose()); }
     for (const st of this.map.stages || []) {
       const e = st.end;
-      const m = new THREE.Mesh(new THREE.BoxGeometry(e.s[0] - 256, 120, e.s[2] - 512).translate(0, 660, 0), this.zoneMat);
+      let m;
+      if (e.cp) {
+        // porte de checkpoint: cadre doré + voile
+        const { w, h } = e.gate, t = 40, gy = e.gate.y - e.p[1];
+        const parts = [
+          new THREE.BoxGeometry(w, t, t).translate(0, gy + h / 2, 0), new THREE.BoxGeometry(w, t, t).translate(0, gy - h / 2, 0),
+          new THREE.BoxGeometry(t, h, t).translate(-w / 2, gy, 0), new THREE.BoxGeometry(t, h, t).translate(w / 2, gy, 0),
+        ];
+        m = new THREE.Group();
+        for (const g of parts) m.add(new THREE.Mesh(g, this.gateMat));
+        m.add(new THREE.Mesh(new THREE.PlaneGeometry(w, h).translate(0, gy, 0), this.veilMat));
+        m.children.forEach(c => { c.raycast = () => {}; });
+      } else {
+        m = new THREE.Mesh(new THREE.BoxGeometry(e.s[0] - 256, 120, e.s[2] - 512).translate(0, 660, 0), this.zoneMat);
+        m.raycast = () => {};
+      }
       m.position.set(e.p[0], e.p[1], e.p[2]); m.rotation.y = (e.r || 0) * Math.PI / 180;
-      m.raycast = () => {};
       this.zones.add(m);
     }
     const s = this.map.spawn;
