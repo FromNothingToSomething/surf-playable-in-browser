@@ -55,6 +55,7 @@ export function objColor(o) {
 
 // mats: tableau de matériaux indexé par o.tx (motif)
 export function buildVisual(o, mats) {
+  if (o.hidden) { const g = new THREE.Mesh(new THREE.BufferGeometry()); g.visible = false; return g; }
   if (o.t === 'deco') return buildDeco(o);
   const g = decorate(worldGeometry(o), objColor(o));
   const m = new THREE.Mesh(g, Array.isArray(mats) ? (mats[o.tx || 0] || mats[0]) : mats);

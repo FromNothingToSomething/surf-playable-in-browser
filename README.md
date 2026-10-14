@@ -36,6 +36,7 @@ Le mode se choisit sur l'écran d'accueil (ou Échap) : Stages, Linéaire, Édit
 | Oni | Stages | 4 | 5 stages |
 | Umi | Linéaire | 2 | sous la mer, 6 checkpoints |
 | Yuki | Linéaire | 3 | neige, 6 checkpoints |
+| Valombre | Linéaire | 2 | médiéval : sommet → vallée boisée → château avec douves, village, chevaliers |
 | Inferno | Linéaire | 5 | enfer, **sans checkpoint**, 17 sections, course de 1 min 50 minimum |
 
 En linéaire, une chute renvoie au dernier checkpoint avec de l'élan.
@@ -60,3 +61,7 @@ src/
   game/      stages, chrono
   input/ player/ ui/
 ```
+
+## Crédits assets
+
+Modèles 3D de Valombre : **KayKit Medieval Hexagon Pack** et **KayKit Adventurers Character Pack** par Kay Lousberg (www.kaylousberg.com), licence CC0. Licences dans `src/assets/`.

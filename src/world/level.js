@@ -3,6 +3,7 @@ import { buildVisual, buildCollision, decorate } from './build.js';
 import { saveMap } from './mapdata.js';
 import { makePatternTextures, makeGlowTextures } from '../render/patterns.js';
 import { createLava } from '../render/lava.js';
+import { Scenery } from './scenery.js';
 import { createSky, SKY_PRESETS } from '../render/sky.js';
 import { WORLD_SIZE } from '../config.js';
 
@@ -35,6 +36,8 @@ export class Level {
     scene.add(this.floorMesh);
     this.lava = createLava(WORLD_SIZE);
     scene.add(this.lava);
+    this.scenery = new Scenery(scene, renderer);
+    this.sceneryFor = null;
 
     this.zones = new THREE.Group();
     scene.add(this.zones);
@@ -85,9 +88,10 @@ export class Level {
       c.children.forEach(e => e.geometry.dispose());
     }
     this.map.objects.forEach((o, i) => { const m = buildVisual(o, this.mats); m.userData.i = i; this.group.add(m); });
-    const lava = this.map.floorKind === 'lave';
-    this.floorMesh.visible = !!this.map.floor && !lava;
+    const lava = this.map.floorKind === 'lave', terrain = !!this.map.terrain;
+    this.floorMesh.visible = !!this.map.floor && !lava && !terrain;
     this.lava.visible = !!this.map.floor && lava;
+    if (this.sceneryFor !== this.map.terrain) { this.sceneryFor = this.map.terrain; if (terrain) this.scenery.build(this.map); else this.scenery.clear(); }
     const fc = this.map.floorColor ?? 0x3f8494;
     if (fc !== this.floorColor) { decorate(this.floorGeo, fc); this.floorColor = fc; }
     for (const z of [...this.zones.children]) { this.zones.remove(z); z.traverse(o => o.geometry && o.geometry.dispose()); }
@@ -118,6 +122,7 @@ export class Level {
     this.applySky();
   }
 
+  update(dt, camPos) { this.scenery.update(dt, camPos); }
   commit() { saveMap(this.map); this.rebuild(); }
   replace(map) { this.map = map; this.commit(); }
   load(map) { this.map = map; this.rebuild(); }

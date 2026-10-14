@@ -7,7 +7,8 @@ import { rampFrame } from '../shapes.js';
 // dy décalage vertical avant la rampe, dx décalage latéral, bend courbure (°), twist torsion (°), pr profil, valley (V).
 
 export const C = { white: 6, red: 8, wood: 9, orange: 10, pink: 11, indigo: 12, gold: 13, black: 14, turquoise: 15, sand: 16, coral: 17, ice: 18, deep: 19, blanc: 20 };
-export const TX = { grille: 0, seigaiha: 1, asanoha: 2, shippo: 3, ichimatsu: 4, bois: 5, laque: 6, netherrack: 7, basalte: 8, obsidienne: 9, magma: 10, briques: 11 };
+export const TXM = { pierre: 12, pave: 13 };
+export const TX = { grille: 0, seigaiha: 1, asanoha: 2, shippo: 3, ichimatsu: 4, bois: 5, laque: 6, netherrack: 7, basalte: 8, obsidienne: 9, magma: 10, briques: 11, pierre: 12, pave: 13 };
 
 const deg = (r) => r * 180 / Math.PI;
 const fwd = (yaw) => [-Math.sin(yaw), -Math.cos(yaw)];
@@ -29,6 +30,7 @@ const trees = (th) => th.trees || [th.tree || 'sakura'];
 
 function startPlatform(objects, X, Y0, th, k) {
   objects.push({ t: 'box', p: [X, Y0 - 384, 0], s: [768, 384, 768], r: 0, ...plat(th) });
+  if (th.noDeco) return { p: [X, Y0, -150], r: 0, pitch: -0.42 };
   objects.push({ t: 'deco', k: th.island || 'ile', p: [X, Y0 - 384, 0], r: k * 37, sc: 0.95 });
   torii(objects, X, Y0, 160, 0, 520, th);
   const tr = trees(th);
@@ -41,8 +43,9 @@ function startPlatform(objects, X, Y0, th, k) {
 
 function endPlatform(objects, st, th, opt, k) {
   const F = fwd(st.yaw), top = st.T - (opt.endDrop ?? 520), len = opt.endLen ?? 3584, ew = opt.endW ?? 1792;
-  const ex = st.B[0] + F[0] * (256 + len / 2), ez = st.B[1] + F[1] * (256 + len / 2);
+  const eg = opt.endGap ?? 256, ex = st.B[0] + F[0] * (eg + len / 2), ez = st.B[1] + F[1] * (eg + len / 2);
   objects.push({ t: 'box', p: [ex, top - 256, ez], s: [ew, 256, len], r: deg(st.yaw), ...plat(th) });
+  if (th.noDeco) return { end: { p: [ex, top - 600, ez], s: [Math.max(2048, ew + 256), 2600, len + 512], r: deg(st.yaw) }, top, center: [ex, top, ez], yaw: st.yaw, len, ew };
   objects.push({ t: 'deco', k: th.island || 'ile', p: [ex, top - 256, ez], r: k * 23, sc: Math.max(ew, len) / 1100 });
   torii(objects, ex + F[0] * (len / 2 - 200), top, ez + F[1] * (len / 2 - 200), st.yaw, 900, th);
   const tr = trees(th);
@@ -125,7 +128,7 @@ export function buildLinear(sections, th, opt = {}) {
     const path = st.path.slice(pathStart);
     const isLast = k === sections.length - 1;
     let end, top = Infinity;
-    if (isLast) ({ end, top } = endPlatform(objects, st, th, opt, k));
+    if (isLast) { const ep = endPlatform(objects, st, th, opt, k); ({ end, top } = ep); st.endInfo = ep; }
     // le checkpoint de la section suivante se place au début de sa première rampe: on le calcule au prochain tour
     stages.push({ spawn, end, failY: Math.min(st.minBase, top - 256) - 900, path, _first: placed[0] });
   });
@@ -145,7 +148,7 @@ export function buildLinear(sections, th, opt = {}) {
   for (const s of stages) delete s._first;
   // décor flottant de part et d'autre de chaque section
   const tr = trees(th);
-  stages.forEach((sg, k) => {
+  if (!th.noDeco) stages.forEach((sg, k) => {
     const q = sg.path[Math.floor(sg.path.length / 2)], Rr = rgt(q.yaw);
     for (const s of [-1, 1]) {
       const d = 2600 + ((k * 7 + (s > 0 ? 3 : 0)) % 5) * 300, y = q.y - 1300 - ((k + (s > 0 ? 1 : 0)) % 3) * 500;
@@ -156,7 +159,8 @@ export function buildLinear(sections, th, opt = {}) {
       if (th.floating) objects.push({ t: 'deco', k: th.floating, p: [x + s * 600, y + 1400 + (k % 3) * 300, z + 400], r: k * 17, sc: 1.6 + (k % 2) });
     }
   });
-  const base = { v: 3, mode: 'lineaire', floor: true, floorColor: th.sea ?? 0x3f8494, floorKind: th.floorKind, sky: th.sky || 'jour', particles: th.particles || 'petales', spawn: spawn0, objects };
+  if (opt.failMargin && !opt.noCheckpoint) for (const s of stages) s.failMargin = opt.failMargin;
+  const base = { endInfo: st.endInfo, v: 3, mode: 'lineaire', floor: true, floorColor: th.sea ?? 0x3f8494, floorKind: th.floorKind, sky: th.sky || 'jour', particles: th.particles || 'petales', spawn: spawn0, objects };
   if (!opt.noCheckpoint) return { ...base, stages };
   // Sans checkpoint: une seule course; chute = sous la piste de plus de failMargin. Les sections restent pour l'entraînement.
   const all = stages.flatMap(s => s.path);

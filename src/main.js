@@ -165,6 +165,7 @@ function loop() {
     updateHUD(player);
     setRun(`${level.map.name || ''}  ·  ${run.hud()}`, run.msgT > 0 ? run.msg : '');
   }
+  level.update(dt, camera.position);
   petals.update(now - t0, camera, renderer);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
@@ -183,6 +184,7 @@ function step(dt) {
   if (ev === 'next' || ev === 'fail') respawn();
   if (ev === 'finish') {
     finishT = 5;
+    level.scenery.cheer(5);
     if (!run.practice) {
       const b = bestTimes(level.map.id);
       if (!b.total || run.finished < b.total) { b.total = run.finished; saveBest(level.map.id, b); run.flash(`Nouveau record : ${fmt(run.finished)}`, 5); }

@@ -16,6 +16,9 @@ export const SKY_PRESETS = {
     hemiSky: 0xbff6ff, hemiGround: 0x1f4f5a, hemi: 1.4, dir: 1.3, amb: 0.6, stars: 0, disc: 0.25, fujiOn: 0, fogNear: 2500, fogFar: 26000 },
   hiver: { top: 0x8fa9c4, horizon: 0xe9eef3, bottom: 0xc9d3dc, sun: [0.3, 0.35, -0.5], sunCol: 0xfff4e6, fuji: 0x9aa8bd, snow: 0xffffff, hills: 0xb8c4d1,
     hemiSky: 0xf2f6ff, hemiGround: 0x9aa4b0, hemi: 1.5, dir: 1.4, amb: 0.5, stars: 0, disc: 0.5, fogNear: 4000, fogFar: 36000 },
+  // royaume médiéval: grand ciel clair, soleil d'après-midi, brume légère
+  royaume: { top: 0x3f7fd0, horizon: 0xcfe2ef, bottom: 0x8aa0a8, sun: [0.5, 0.45, 0.3], sunCol: 0xfff0d8, fuji: 0x000000, snow: 0x000000, hills: 0x6d8aa0,
+    hemiSky: 0xe6f1ff, hemiGround: 0x5a6b3a, hemi: 1.4, dir: 2.3, amb: 0.35, stars: 0, disc: 1, fujiOn: 0, fogNear: 12000, fogFar: 140000 },
   // enfer: plafond noir-rouge, horizon incandescent, lumière de lave par en dessous, crêtes déchiquetées
   enfer: { top: 0x12030a, horizon: 0xa8321a, bottom: 0xc04a1c, sun: [0.25, -0.8, 0.3], sunCol: 0xff7a2e, fuji: 0x000000, snow: 0x000000, hills: 0x1a0606,
     hemiSky: 0xd07a66, hemiGround: 0xff6a24, hemi: 1.6, dir: 1.6, amb: 0.75, stars: 0.35, disc: 0, fujiOn: 0, jag: 1, fogNear: 3500, fogFar: 30000 },

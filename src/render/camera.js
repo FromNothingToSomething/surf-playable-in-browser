@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 export function createCamera() {
-  const c = new THREE.PerspectiveCamera(90, innerWidth/innerHeight, 2, 100000);
+  const c = new THREE.PerspectiveCamera(90, innerWidth/innerHeight, 4, 320000);
   c.rotation.order = 'YXZ';
   addEventListener('resize', () => { c.aspect = innerWidth/innerHeight; c.updateProjectionMatrix(); });
   return c;

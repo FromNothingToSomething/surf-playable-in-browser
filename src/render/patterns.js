@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // Motifs japonais procéduraux, en niveaux de gris (teintés par la couleur de l'objet). Tous tuilables.
 // 1 tuile = 256 unités monde.
-export const TEXTURES = ['grille', 'seigaiha', 'asanoha', 'shippo', 'ichimatsu', 'bois', 'laque', 'netherrack', 'basalte', 'obsidienne', 'magma', 'briques'];
+export const TEXTURES = ['grille', 'seigaiha', 'asanoha', 'shippo', 'ichimatsu', 'bois', 'laque', 'netherrack', 'basalte', 'obsidienne', 'magma', 'briques', 'pierre', 'pave'];
 
 function canvas(w, h = w) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -186,7 +186,42 @@ function glowFrom(mask, color = [255, 140, 40]) {
 }
 const GLOW = { magma: glowFrom(MAGMA), basalte: glowFrom(BASALT, [255, 100, 30]), netherrack: glowFrom(NRACK, [200, 60, 20]) };
 
-const MAKERS = { grille, seigaiha, asanoha, shippo, ichimatsu, bois, laque, netherrack, basalte, obsidienne, magma, briques };
+// ---- Médiéval ----
+// Pierres de taille: rangées décalées, joints sombres, variations par bloc
+function pierre() {
+  const S = 512, [c, g] = canvas(S), r = rng(321);
+  g.fillStyle = '#5a5650'; g.fillRect(0, 0, S, S);
+  const rowH = 64;
+  for (let y = 0; y < S; y += rowH) {
+    const off = ((y / rowH) & 1) ? 64 : 0;
+    for (let x = -128; x < S + 128; x += 128) {
+      const v = 175 + (r() - 0.5) * 50, w = 128 - 6, h = rowH - 6;
+      g.fillStyle = `rgb(${v},${v - 4},${v - 12})`;
+      g.fillRect(x + off + 3, y + 3, w, h);
+      g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(x + off + 3, y + 3, w, 4);
+      g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x + off + 3, y + h - 1, w, 4);
+    }
+  }
+  grain(g, S, S, 22);
+  return c;
+}
+// Pavés arrondis
+function pave() {
+  const S = 512, [c, g] = canvas(S), r = rng(77);
+  g.fillStyle = '#4e4a44'; g.fillRect(0, 0, S, S);
+  const n = 8, q = S / n;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const v = 160 + (r() - 0.5) * 60, cx = x * q + q / 2 + (r() - 0.5) * 8, cy = y * q + q / 2 + (r() - 0.5) * 8;
+    const grd = g.createRadialGradient(cx - 8, cy - 8, 4, cx, cy, q * 0.55);
+    grd.addColorStop(0, `rgb(${v + 30},${v + 26},${v + 18})`); grd.addColorStop(1, `rgb(${v - 30},${v - 34},${v - 40})`);
+    g.fillStyle = grd; g.beginPath(); g.ellipse(cx, cy, q * 0.44, q * 0.4, r() * 3, 0, 7); g.fill();
+  }
+  grain(g, S, S, 16);
+  c._repeat = 4;
+  return c;
+}
+
+const MAKERS = { grille, seigaiha, asanoha, shippo, ichimatsu, bois, laque, netherrack, basalte, obsidienne, magma, briques, pierre, pave };
 
 function toTexture(cv, aniso) {
   const t = new THREE.CanvasTexture(cv);
@@ -194,7 +229,7 @@ function toTexture(cv, aniso) {
   t.colorSpace = THREE.SRGBColorSpace;
   if (cv._pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestMipmapLinearFilter; }
   t.anisotropy = aniso;
-  const k = cv._pixel ? 2 : 1; // pixel art: 1 tuile = 128u (pixels de 4u)
+  const k = cv._repeat || (cv._pixel ? 2 : 1); // pixel art: 1 tuile = 128u (pixels de 4u)
   t.repeat.set(k, k * cv.width / cv.height);
   return t;
 }

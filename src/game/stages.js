@@ -52,7 +52,7 @@ export class Run {
       const lin = this.map && this.map.mode === 'lineaire';
       this.flash(lin ? `Checkpoint ${k + 1} : ${fmt(this.total)}` : `Stage ${k + 1} : ${fmt(this.stageTime)}`);
       if (k === this.stages.length - 1) { this.finished = this.total; this.flash(`Map terminée en ${fmt(this.total)}`, 5); return 'finish'; }
-      this.stage++; this.stageTime = 0;
+      this.stage++; this.stageTime = 0; this.pidx = 0;
       return lin ? 'cp' : 'next';
     }
     return null;
